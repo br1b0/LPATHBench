@@ -5,7 +5,6 @@
 #include <iostream>
 #include <string>
 #include <chrono>
-#include <algorithm>
 
 using namespace std;
 using namespace std::chrono;
@@ -26,72 +25,42 @@ vector<node> readPlaces(){
   while (text >> node >> neighbour >> cost){
     nodes[node].neighbours.push_back(route{neighbour, cost});
   }
-  for (auto &n : nodes) {
-    sort(n.neighbours.begin(), n.neighbours.end(),
-        [](const route &a, const route &b) {
-          return a.cost > b.cost;
-        });
-  }
   return nodes;
 }
 
-static int getMaxCost(const vector<node> &nodes,
-                      const vector<char> &visited) {
-  int result = 0;
-  int lowestMaxNodeCost = 0;
-  for (int i = 0; i < (int) nodes.size(); ++i) {
-    if (visited[i]) {
-      continue;
-    }
-    int maxNodeCost = 0;
-    for (const route &neighbour : nodes[i].neighbours) {
-      if (visited[neighbour.dest]) {
-        continue;
-      }
-      if (neighbour.cost > maxNodeCost) {
-        maxNodeCost = neighbour.cost;
-      }
-    }
-    if (maxNodeCost < lowestMaxNodeCost) {
-      lowestMaxNodeCost = maxNodeCost;
-    }
-    result += maxNodeCost;
-  }
-  return result - lowestMaxNodeCost;
-}
-
-static void getLongestPath(int remainingNodes,
-                           int nodeID,
-                           int curPathLen,
-                           const vector<node> &nodes,
-                           vector<char> &visited,
-                           int &maxPathLen) {
-  if (!remainingNodes) {
-    if (curPathLen > maxPathLen) {
-      maxPathLen = curPathLen;
-    }
-    return;
-  }
+template <int T>
+int getLongestPath(const vector<node> &nodes, const int nodeID, bitset<T> visited){
   visited[nodeID] = true;
-  int nextMaxCost = getMaxCost(nodes, visited);
-  for (const route &neighbour : nodes[nodeID].neighbours) {
-    if (!visited[neighbour.dest]) {
-      int nextPathLen = curPathLen + neighbour.cost;
-      if (nextPathLen + nextMaxCost > maxPathLen) {
-        getLongestPath(remainingNodes - 1, neighbour.dest, nextPathLen,
-                       nodes, visited, maxPathLen);
+  int max=0;
+  for(const route &neighbour: nodes[nodeID].neighbours){
+    if (visited[neighbour.dest] == false){
+      const int dist = neighbour.cost + getLongestPath<T>(nodes, neighbour.dest, visited);
+      if (dist > max){
+        max = dist;
       }
     }
   }
   visited[nodeID] = false;
+  return max;
 }
 
-static int getLongestPath(const vector<node> &nodes)
+int getLongestPath(const vector<node> &nodes)
 {
-  vector<char> visited(nodes.size());
-  int maxPathLen = 0;
-  getLongestPath(nodes.size() - 1, 0, 0, nodes, visited, maxPathLen);
-  return maxPathLen;
+  if (nodes.size() <= 16) {
+     return getLongestPath<16>(nodes, 0, bitset<16>());
+  } else if (nodes.size() <= 256) {
+    return getLongestPath<256>(nodes, 0, bitset<256>());
+  } else if (nodes.size() <= 4096) {
+    return getLongestPath<4096>(nodes, 0, bitset<4096>());
+  } else if (nodes.size() <= 65536) {
+    return getLongestPath<65536>(nodes, 0, bitset<65536>());
+  } else if (nodes.size() <= 1048576) {
+    return getLongestPath<1048576>(nodes, 0, bitset<1048576>());
+  } else if (nodes.size() <= 16777216) {
+    return getLongestPath<16777216>(nodes, 0, bitset<16777216>());
+  } else {
+    return -1;
+  }
 }
 
 int main(int argc, char** argv){
